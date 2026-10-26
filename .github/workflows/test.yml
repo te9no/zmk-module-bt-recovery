@@ -18,9 +18,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {name: central, shield: corne_left, config: recovery}
-          - {name: peripheral, shield: corne_right, config: recovery}
-          - {name: disabled, shield: corne_left, config: disabled}
+          - {name: central, shield: corne_left, config: recovery, bridge: true}
+          - {name: peripheral, shield: corne_right, config: recovery, bridge: true}
+          - {name: disabled, shield: corne_left, config: disabled, bridge: true}
+          - {name: unpatched-disabled, shield: corne_left, config: disabled, bridge: false}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,10 +36,20 @@ jobs:
           west update --narrow
           west zephyr-export
       - name: Apply explicit bridge and test real owner functions
+        if: matrix.bridge
         run: |
           python3 module/scripts/apply_bridge.py ws/zmk
           python3 module/scripts/apply_bridge.py ws/zmk
           python3 module/tests/test_bridge.py ws/zmk
+      - name: Reject enabled recovery without bridge
+        if: ${{ !matrix.bridge }}
+        working-directory: ws/zmk
+        run: |
+          if west build -s app -d rejected -b nice_nano//zmk -- -DSHIELD=corne_left -DZMK_EXTRA_MODULES=$GITHUB_WORKSPACE/module -DEXTRA_CONF_FILE=$GITHUB_WORKSPACE/module/tests/smoke/recovery.conf > rejected.log 2>&1; then
+            echo "ERROR: build unexpectedly accepted missing bridge"
+            exit 1
+          fi
+          grep 'BT recovery requires the pinned core bridge' rejected.log
       - name: Build nRF52840
         working-directory: ws/zmk
         run: |
