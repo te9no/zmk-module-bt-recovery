@@ -1,0 +1,4 @@
+name: zmk_bt_recovery
+build:
+  cmake: .
+  kconfig: Kconfig
