@@ -1,0 +1,6 @@
+menuconfig ZMK_BT_RECOVERY
+    bool "Experimental ZMK Bluetooth recovery module"
+    default n
+    help
+      Enables the module build. The initial scaffold has no recovery
+      behavior and does not modify Bluetooth state.
