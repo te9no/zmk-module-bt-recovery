@@ -10,7 +10,7 @@ The patch contains two kinds of change:
    connections in connected/disconnected callbacks; reject out-of-range source
    IDs before dispatch (including battery writes).
 2. Optional bridge: report actual start results, valid split link events and
-   received split events; expose a role-specific retry entry guarded by the
+   received BLE key-state packets (after length validation); expose a role-specific retry entry guarded by the
    existing transport-enabled/connection state and activity Sleep state.
 
 The core prerequisites remain with the module OFF. They are intentional fixes

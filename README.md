@@ -63,9 +63,10 @@ No hardware files, keymaps or existing user settings are changed.
 
 Supports up to 32 peer slots; invalid IDs are rejected before shifts/indexing.
 Snapshots via `zmk_bt_recovery_snapshot()` include state, retry count, last
-error, link bitmap, last connection and last received split event timestamp.
+error, link bitmap, last connection and last received BLE key-state packet timestamp.
 Zero timestamps mean unobserved, not healthy. Peripheral last_traffic currently
 remains unknown; advertising and connection events do not prove data delivery.
+Disconnect-generated battery events do not count as successful communication.
 Diagnostics logs are event-driven, never per-key. No new Studio RPC is provided.
 
 ## Sleep
