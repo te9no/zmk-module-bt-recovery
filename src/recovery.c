@@ -67,8 +67,11 @@ void zmk_bt_recovery_traffic(int index) {
 static void retry_work_cb(struct k_work *work) {
     k_spinlock_key_t key = k_spin_lock(&lock);
     bool run = recovery_due(&policy, k_uptime_get());
+    unsigned attempt = policy.attempts;
     k_spin_unlock(&lock, key);
     if (!run) return;
+    if (IS_ENABLED(CONFIG_ZMK_BT_RECOVERY_DIAGNOSTICS))
+        LOG_INF("recovery attempt=%u", attempt);
     int err = zmk_bt_recovery_retry();
     if (err == -ECANCELED) {
         key = k_spin_lock(&lock);
