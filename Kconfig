@@ -1,6 +1,43 @@
 menuconfig ZMK_BT_RECOVERY
-    bool "Experimental ZMK Bluetooth recovery module"
+    bool "Bounded split Bluetooth start-failure recovery"
+    depends on ZMK_SPLIT && ZMK_SPLIT_BLE && BT
     default n
     help
-      Enables the module build. The initial scaffold has no recovery
-      behavior and does not modify Bluetooth state.
+      Requires the version-pinned core bridge. Does not reset, clear bonds,
+      restart healthy links, or detect silent radio/controller freezes.
+
+if ZMK_BT_RECOVERY
+
+config ZMK_BT_RECOVERY_MAX_RETRIES
+    int "Maximum retries per failed start episode"
+    range 1 10
+    default 5
+
+config ZMK_BT_RECOVERY_RETRY_DELAY_MS
+    int "Initial retry delay (ms)"
+    range 1000 60000
+    default 1000
+
+config ZMK_BT_RECOVERY_MAX_DELAY_MS
+    int "Maximum retry delay (ms)"
+    range 1000 300000
+    default 16000
+
+config ZMK_BT_RECOVERY_GRACE_MS
+    int "Boot/wake grace (ms)"
+    range 1000 120000
+    default 5000
+
+config ZMK_BT_RECOVERY_LINK_COUNT
+    int
+    default ZMK_SPLIT_BLE_CENTRAL_PERIPHERALS if ZMK_SPLIT_ROLE_CENTRAL
+    default 1
+
+config ZMK_BT_RECOVERY_DIAGNOSTICS
+    bool "Log start results and split link transitions"
+    default n
+
+module = ZMK_BT_RECOVERY
+module-str = bt recovery
+source "subsys/logging/Kconfig.template.log_config"
+endif
