@@ -1,0 +1,68 @@
+name: Test recovery
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: bt-recovery-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sh tests/run.sh
+  firmware:
+    runs-on: ubuntu-latest
+    container: zmkfirmware/zmk-build-arm:4.1
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: central, shield: corne_left, config: recovery, bridge: true}
+          - {name: peripheral, shield: corne_right, config: recovery, bridge: true}
+          - {name: disabled, shield: corne_left, config: disabled, bridge: true}
+          - {name: unpatched-disabled, shield: corne_left, config: disabled, bridge: false}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: module
+      - name: Fetch pinned upstream
+        run: |
+          git clone https://github.com/zmkfirmware/zmk.git ws/zmk
+          git -C ws/zmk checkout 4dd95d7840eb3d5a3f59bb29fbf1ab054715ef85
+          cd ws
+          west init -l zmk/app
+          cd zmk
+          west update --narrow
+          west zephyr-export
+      - name: Apply explicit bridge and test real owner functions
+        if: matrix.bridge
+        run: |
+          python3 module/scripts/apply_bridge.py ws/zmk
+          python3 module/scripts/apply_bridge.py ws/zmk
+          python3 module/tests/test_bridge.py ws/zmk
+      - name: Reject enabled recovery without bridge
+        if: ${{ !matrix.bridge }}
+        working-directory: ws/zmk
+        run: |
+          if west build -s app -d rejected -b nice_nano//zmk -- -DSHIELD=corne_left -DZMK_EXTRA_MODULES=$GITHUB_WORKSPACE/module -DEXTRA_CONF_FILE=$GITHUB_WORKSPACE/module/tests/smoke/recovery.conf > rejected.log 2>&1; then
+            echo "ERROR: build unexpectedly accepted missing bridge"
+            exit 1
+          fi
+          grep 'BT recovery requires the pinned core bridge' rejected.log
+      - name: Build nRF52840
+        working-directory: ws/zmk
+        run: |
+          west build -s app -d build -b nice_nano//zmk -- -DSHIELD=${{ matrix.shield }} -DZMK_EXTRA_MODULES=$GITHUB_WORKSPACE/module -DEXTRA_CONF_FILE=$GITHUB_WORKSPACE/module/tests/smoke/${{ matrix.config }}.conf
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-build
+          path: |
+            ws/zmk/build/zephyr/zmk.uf2
+            ws/zmk/build/zephyr/.config
+            ws/zmk/build/zephyr/zephyr.dts
+            ws/zmk/build/zephyr/zmk.map

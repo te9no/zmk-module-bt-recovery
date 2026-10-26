@@ -1,2 +1,15 @@
-# Scaffold: no source files are compiled until the recovery design
-# has been validated against a pinned ZMK/Zephyr revision.
+if(CONFIG_ZMK_BT_RECOVERY)
+  if(NOT CONFIG_ZMK_BT_RECOVERY_BRIDGE_V1)
+    message(FATAL_ERROR "BT recovery requires the pinned core bridge; see patches/README.md")
+  endif()
+  if(CONFIG_ZMK_BT_RECOVERY_LINK_COUNT GREATER 32)
+    message(FATAL_ERROR "BT recovery supports at most 32 split peripherals")
+  endif()
+  if(CONFIG_ZMK_BT_RECOVERY_MAX_DELAY_MS LESS CONFIG_ZMK_BT_RECOVERY_RETRY_DELAY_MS)
+    message(FATAL_ERROR "Maximum retry delay must not be below initial delay")
+  endif()
+  zephyr_include_directories(include)
+  zephyr_library()
+  zephyr_library_include_directories(${APPLICATION_SOURCE_DIR}/include)
+  zephyr_library_sources(src/recovery.c src/recovery_policy.c)
+endif()
