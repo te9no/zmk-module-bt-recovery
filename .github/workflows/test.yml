@@ -1,10 +1,14 @@
 name: Test recovery
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: bt-recovery-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   policy:
     runs-on: ubuntu-latest
